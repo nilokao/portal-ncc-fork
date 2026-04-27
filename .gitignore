@@ -13,3 +13,5 @@ __pycache__/
 *.bak
 *.csv
 *.ods
+*.json
+simulacoes/
