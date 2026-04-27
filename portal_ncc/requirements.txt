@@ -1,0 +1,4 @@
+django
+pandas
+odfpy
+python -m pip freeze > requirements.txt

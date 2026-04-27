@@ -19,7 +19,7 @@ from collections import Counter
 # ------------------------------------------------------------------
 
 # Nome exato da coluna que indica o curso no CSV
-COLUNA_CURSO    = "COLUNA_CURSO"          # ex: "CC" ou "SI"
+COLUNA_CURSO    = "NOME_CURSO"          # ex: "CC" ou "SI"
 COLUNA_SITUACAO = "FORMA_EVASA0"       # ex: "Matriculado" ou "Egresso"
 COLUNA_NOME     = "NOME_PESSOA"
 COLUNA_EMAIL    = "DESCR_MAIL"
@@ -46,9 +46,10 @@ def processar_arquivo(arquivo) -> dict:
     """
     grupos = {
         'matriculados_cc': [],
-        'egressos_cc':     [],
+        'matriculados_si': [],
+        'egressos_cc': [],
+        'egressos_si': [],
     }
-
     # Lê o conteúdo do upload em memória
     conteudo = arquivo.read()
 
@@ -86,16 +87,21 @@ def processar_arquivo(arquivo) -> dict:
 
 
 def _classificar(situacao: str, curso: str) -> str | None:
-    """Retorna a chave do grupo ou None se não reconhecido."""
     s = situacao.lower()
     c = curso.upper()
 
     if VALOR_MATRICULADO.lower() in s:
         if c == VALOR_CC:
             return 'matriculados_cc'
+        if c == VALOR_SI:
+            return 'matriculados_si'
+
     elif VALOR_EGRESSO.lower() in s:
         if c == VALOR_CC:
             return 'egressos_cc'
+        if c == VALOR_SI:
+            return 'egressos_si'
+
     return None
 
 

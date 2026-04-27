@@ -31,7 +31,7 @@
 
   /* ---- Grid de cards ---- */
   .grade {
-    max-width: 1100px; margin: 0 auto;
+    max-width: 90vw; margin: 0 auto;
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: 1rem;
@@ -157,7 +157,7 @@
 <div class="topo">
   <div>
     <h1>Revisão dos grupos</h1>
-    <p>Confira, mova ou remova alunos antes de sincronizar com o Google Workspace.</p>
+      <p>Confira, mova ou remova alunos antes de gerar a simulação dos grupos.</p>
   </div>
   <button class="btn-sync" onclick="abrirModal()">Sincronizar grupos</button>
 </div>
@@ -213,7 +213,7 @@
 <div class="modal-bg" id="modal-bg">
   <div class="modal">
     <h2>Confirmar sincronização</h2>
-    <p>Os grupos do Google Workspace serão atualizados com base na lista atual. Membros removidos aqui serão retirados dos grupos. Essa ação não pode ser desfeita facilmente.</p>
+    <p>Será gerado um arquivo de simulação com os grupos e alunos atuais. Nenhuma alteração será feita no Google Workspace.</p>
     <div class="modal-acoes">
       <button class="btn-cancelar" onclick="fecharModal()">Cancelar</button>
       <form method="post" action="{% url 'confirmar_sync' %}" style="display:inline">
