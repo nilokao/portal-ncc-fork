@@ -1,13 +1,3 @@
-"""
-utils.py
---------
-Processa o arquivo CSV enviado pelo usuário e classifica cada aluno
-nos 4 grupos usando o contador_instancias como base de inspeção.
-
-IMPORTANTE: contador_instancias.py trabalha com filepath (str).
-Aqui salvamos o upload em memória temporária para compatibilidade.
-"""
-
 import csv
 import io
 import tempfile
@@ -22,20 +12,12 @@ COLUNA_EMAIL    = "DESCR_MAIL"
 
 # Valores que aparecem na coluna situacao
 VALOR_MATRICULADO = "ESTUDANTE REGULAR"
-VALOR_EGRESSO     = "ABANDONO"
 
 # Valores que aparecem na coluna curso
 VALOR_CC = "CIENCIA DA COMPUTACAO - BACHARELADO"
 VALOR_SI = "BACHARELADO EM SISTEMAS DE INFORMACAO"
 
 def processar_arquivo(arquivo) -> dict:
-    """
-    Recebe um InMemoryUploadedFile (Django) e retorna dict com 4 listas:
-        {
-            'matriculados_cc': [{'nome': ..., 'email': ...}, ...],
-            'egressos_cc':     [...],
-        }
-    """
     grupos = {
         'matriculados_cc': [],
         'matriculados_si': [],
@@ -85,7 +67,7 @@ def _classificar(situacao: str, curso: str) -> str | None:
         if c == VALOR_SI:
             return 'matriculados_si'
 
-    elif VALOR_EGRESSO.lower() in s:
+    else:
         if c == VALOR_CC:
             return 'egressos_cc'
         if c == VALOR_SI:
@@ -94,16 +76,6 @@ def _classificar(situacao: str, curso: str) -> str | None:
     return None
 
 def inspecionar_colunas(arquivo) -> dict:
-    """
-    Retorna um resumo das colunas e valores únicos do CSV.
-    Útil para depuração quando os nomes das colunas são desconhecidos.
-
-    Retorna:
-        {
-            'colunas': ['col1', 'col2', ...],
-            'contagens': {'col1': Counter({...}), ...}
-        }
-    """
     conteudo = arquivo.read()
     arquivo.seek(0)
 
