@@ -14,13 +14,9 @@ import tempfile
 import os
 from collections import Counter
 
-# ------------------------------------------------------------------
-# Constantes — ajuste conforme os valores reais do seu CSV
-# ------------------------------------------------------------------
-
 # Nome exato da coluna que indica o curso no CSV
-COLUNA_CURSO    = "NOME_CURSO"          # ex: "CC" ou "SI"
-COLUNA_SITUACAO = "FORMA_EVASA0"       # ex: "Matriculado" ou "Egresso"
+COLUNA_CURSO    = "NOME_CURSO"          # CC ou SI
+COLUNA_SITUACAO = "FORMA_EVASA0"        # Matriculado ou Egresso
 COLUNA_NOME     = "NOME_PESSOA"
 COLUNA_EMAIL    = "DESCR_MAIL"
 
@@ -31,10 +27,6 @@ VALOR_EGRESSO     = "ABANDONO"
 # Valores que aparecem na coluna curso
 VALOR_CC = "CIENCIA DA COMPUTACAO - BACHARELADO"
 VALOR_SI = "BACHARELADO EM SISTEMAS DE INFORMACAO"
-
-# ------------------------------------------------------------------
-# Função principal
-# ------------------------------------------------------------------
 
 def processar_arquivo(arquivo) -> dict:
     """
@@ -50,10 +42,8 @@ def processar_arquivo(arquivo) -> dict:
         'egressos_cc': [],
         'egressos_si': [],
     }
-    # Lê o conteúdo do upload em memória
     conteudo = arquivo.read()
 
-    # Tenta UTF-8 primeiro, cai em latin-1 (padrão de exports brasileiros)
     try:
         texto = conteudo.decode('utf-8')
     except UnicodeDecodeError:
@@ -61,9 +51,8 @@ def processar_arquivo(arquivo) -> dict:
 
     reader = csv.DictReader(io.StringIO(texto))
 
-    # Valida se as colunas necessárias existem
     if reader.fieldnames is None:
-        raise ValueError("Arquivo CSV vazio ou sem cabeçalho.")
+        raise ValueError("Arquivo vazio ou sem cabeçalho.")
 
     colunas = [c.strip() for c in reader.fieldnames]
     for col in [COLUNA_CURSO, COLUNA_SITUACAO, COLUNA_NOME, COLUNA_EMAIL]:
@@ -104,12 +93,6 @@ def _classificar(situacao: str, curso: str) -> str | None:
 
     return None
 
-
-# ------------------------------------------------------------------
-# Utilitário para inspecionar o CSV antes de processar
-# (usa as funções do contador_instancias sem depender de filepath)
-# ------------------------------------------------------------------
-
 def inspecionar_colunas(arquivo) -> dict:
     """
     Retorna um resumo das colunas e valores únicos do CSV.
@@ -122,7 +105,7 @@ def inspecionar_colunas(arquivo) -> dict:
         }
     """
     conteudo = arquivo.read()
-    arquivo.seek(0)  # rebobina para processar_arquivo poder ler depois
+    arquivo.seek(0)
 
     try:
         texto = conteudo.decode('utf-8')

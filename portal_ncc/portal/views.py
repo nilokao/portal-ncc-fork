@@ -13,11 +13,6 @@ from django.contrib import messages
 from .utils import processar_arquivo
 from .google_service import sincronizar_grupos
 
-
-# ------------------------------------------------------------------
-# 1. Upload
-# ------------------------------------------------------------------
-
 def upload(request):
     if request.method == 'POST':
         arquivo = request.FILES.get('arquivo')
@@ -42,11 +37,6 @@ def upload(request):
 
     return render(request, 'portal/upload.html')
 
-
-# ------------------------------------------------------------------
-# 2. Revisão
-# ------------------------------------------------------------------
-
 def revisao(request):
     grupos = request.session.get('grupos')
 
@@ -57,12 +47,11 @@ def revisao(request):
     contagens = {chave: len(membros) for chave, membros in grupos.items()}
     total = sum(contagens.values())
 
-    # Metadados dos grupos: (chave, label legível, classe CSS do badge)
     grupos_meta = [
-        ('matriculados_cc', 'Matriculados — Ciência da Computação', 'badge-mat'),
-        ('matriculados_si', 'Matriculados — Sistemas de Informação', 'badge-mat'),
-        ('egressos_cc',     'Egressos — Ciência da Computação',     'badge-egr'),
-        ('egressos_si',     'Egressos — Sistemas de Informação',    'badge-egr'),
+        ('matriculados_cc', 'Matriculados - Ciência da Computação', 'badge-mat'),
+        ('matriculados_si', 'Matriculados - Sistemas de Informação', 'badge-mat'),
+        ('egressos_cc',     'Egressos - Ciência da Computação',     'badge-egr'),
+        ('egressos_si',     'Egressos - Sistemas de Informação',    'badge-egr'),
     ]
 
     return render(request, 'portal/revisao.html', {
@@ -124,11 +113,6 @@ def remover_aluno(request):
     request.session.modified = True
 
     return JsonResponse({'ok': True})
-
-
-# ------------------------------------------------------------------
-# 4. Confirmar sincronização
-# ------------------------------------------------------------------
 
 @require_POST
 def confirmar_sync(request):
