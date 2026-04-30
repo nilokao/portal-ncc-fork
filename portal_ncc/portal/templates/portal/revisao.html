@@ -153,7 +153,15 @@
 </style>
 </head>
 <body>
-
+  {% if messages %}
+  <div style="max-width:1100px;margin:0 auto 1rem;">
+    {% for message in messages %}
+      <div style="padding:12px 16px;border-radius:8px;background:#fee2e2;color:#7f1d1d;margin-bottom:8px;">
+        {{ message }}
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
 <div class="topo">
   <div>
     <h1>Revisão dos grupos</h1>
@@ -213,7 +221,7 @@
 <div class="modal-bg" id="modal-bg">
   <div class="modal">
     <h2>Confirmar sincronização</h2>
-    <p>Será gerado um arquivo de simulação com os grupos e alunos atuais. Nenhuma alteração será feita no Google Workspace.</p>
+    <p>Executando teste nos grupos de teste do Google Workspace.</p>
     <div class="modal-acoes">
       <button class="btn-cancelar" onclick="fecharModal()">Cancelar</button>
       <form method="post" action="{% url 'confirmar_sync' %}" style="display:inline">

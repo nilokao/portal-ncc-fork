@@ -1,55 +1,133 @@
-"""
-google_service.py
------------------
-simulação local da sincronização dos grupos.
+import os
+import time
+from collections import defaultdict
 
-por enquanto não integra com google workspace.
-apenas gera um arquivo JSON com o resultado da sincronização.
-"""
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 
-import json
-from pathlib import Path
-from datetime import datetime
+SCOPES = [
+    "https://www.googleapis.com/auth/admin.directory.group.member"
+]
 
+SERVICE_ACCOUNT_FILE = os.getenv("GOOGLE_SA_FILE", "credentials.json")
+ADMIN_EMAIL = os.getenv("GOOGLE_ADMIN_EMAIL")
 
 GRUPOS_EMAIL = {
-    'matriculados_cc': 'matriculados-cc-simulado@inf.ufsm.br',
-    'matriculados_si': 'matriculados-si-simulado@inf.ufsm.br',
-    'egressos_cc': 'egressos-cc-simulado@inf.ufsm.br',
-    'egressos_si': 'egressos-si-simulado@inf.ufsm.br',
+    "matriculados_cc": "matriculados-teste@inf.ufsm.br",
+    "matriculados_si": "matriculados-teste@inf.ufsm.br",
+    "egressos_cc": "egressos-teste@inf.ufsm.br",
+    "egressos_si": "egressos-teste@inf.ufsm.br",
 }
 
 
-def sincronizar_grupos(grupos: dict):
-    """
-    simula a sincronização dos grupos.
+def _get_service():
+    if not ADMIN_EMAIL:
+        raise ValueError("GOOGLE_ADMIN_EMAIL não definido.")
 
-    em vez de chamar a api do google, salva o estado final em:
-    simulacoes/sync_YYYYMMDD_HHMMSS.json
-    """
+    creds = service_account.Credentials.from_service_account_file(
+        SERVICE_ACCOUNT_FILE,
+        scopes=SCOPES,
+    ).with_subject(ADMIN_EMAIL)
 
-    pasta = Path("simulacoes")
-    pasta.mkdir(exist_ok=True)
+    return build("admin", "directory_v1", credentials=creds)
 
-    resultado = {
-        "simulado": True,
-        "data_hora": datetime.now().isoformat(timespec="seconds"),
-        "grupos": {},
-    }
+
+def _listar_membros(service, grupo_email: str) -> set[str]:
+    membros = set()
+
+    req = service.members().list(groupKey=grupo_email)
+
+    while req is not None:
+        resp = req.execute()
+
+        for membro in resp.get("members", []):
+            email = membro.get("email")
+            if email:
+                membros.add(email.strip().lower())
+
+        req = service.members().list_next(req, resp)
+
+    return membros
+
+
+def _remover_membro(service, grupo_email: str, email: str):
+    try:
+        service.members().delete(
+            groupKey=grupo_email,
+            memberKey=email,
+        ).execute()
+
+        print(f"removido: {email} de {grupo_email}")
+
+    except HttpError as e:
+        if e.resp.status == 404:
+            print(f"já não estava no grupo: {email}")
+            return
+
+        raise
+
+
+def _adicionar_membro(service, grupo_email: str, email: str):
+    try:
+        service.members().insert(
+            groupKey=grupo_email,
+            body={
+                "email": email,
+                "role": "MEMBER",
+            },
+        ).execute()
+
+        print(f"adicionado: {email} em {grupo_email}")
+
+    except HttpError as e:
+        if e.resp.status == 409:
+            print(f"já existe no grupo: {email}")
+            return
+
+        raise
+
+
+def _montar_membros_por_grupo_email(grupos: dict) -> dict[str, set[str]]:
+    membros_por_grupo_email = defaultdict(set)
 
     for chave, membros in grupos.items():
-        grupo_email = GRUPOS_EMAIL.get(chave, f"{chave}@grupo-simulado.local")
+        grupo_email = GRUPOS_EMAIL.get(chave)
 
-        resultado["grupos"][chave] = {
-            "grupo_email": grupo_email,
-            "total_membros": len(membros),
-            "membros": membros,
-        }
+        if not grupo_email:
+            raise ValueError(f"Grupo '{chave}' não configurado em GRUPOS_EMAIL.")
 
-    nome_arquivo = datetime.now().strftime("sync_%Y%m%d_%H%M%S.json")
-    caminho = pasta / nome_arquivo
+        for aluno in membros:
+            email = aluno.get("email", "").strip().lower()
 
-    with caminho.open("w", encoding="utf-8") as f:
-        json.dump(resultado, f, ensure_ascii=False, indent=2)
+            if email:
+                membros_por_grupo_email[grupo_email].add(email)
 
-    return resultado
+    return dict(membros_por_grupo_email)
+
+
+def sincronizar_grupos(grupos: dict):
+    service = _get_service()
+
+    membros_por_grupo_email = _montar_membros_por_grupo_email(grupos)
+
+    for grupo_email, emails_desejados in membros_por_grupo_email.items():
+        print("=" * 60)
+        print(f"sincronizando grupo real: {grupo_email}")
+        print(f"membros desejados: {len(emails_desejados)}")
+
+        emails_atuais = _listar_membros(service, grupo_email)
+
+        print(f"membros atuais: {len(emails_atuais)}")
+
+        print("removendo membros atuais...")
+        for email in emails_atuais:
+            _remover_membro(service, grupo_email, email)
+            time.sleep(0.1)
+
+        print("adicionando membros desejados...")
+        for email in emails_desejados:
+            _adicionar_membro(service, grupo_email, email)
+            time.sleep(0.1)
+
+    print("sincronização finalizada")

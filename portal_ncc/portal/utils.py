@@ -50,28 +50,30 @@ def processar_arquivo(arquivo) -> dict:
         nome     = row.get(COLUNA_NOME,     "").strip()
         email    = row.get(COLUNA_EMAIL,    "").strip()
 
-        chave = _classificar(situacao, curso)
+        chave = _classificar(situacao, curso, email)
         if chave and email:
             grupos[chave].append({'nome': nome, 'email': email})
 
     return grupos
 
 
-def _classificar(situacao: str, curso: str) -> str | None:
+def _classificar(situacao: str, curso: str, email: str) -> str | None:
     s = situacao.lower()
     c = curso.upper()
+    e = email.upper()
 
-    if VALOR_MATRICULADO.lower() in s:
-        if c == VALOR_CC:
-            return 'matriculados_cc'
-        if c == VALOR_SI:
-            return 'matriculados_si'
+    if e != 'NAN':
+        if VALOR_MATRICULADO.lower() in s:
+            if c == VALOR_CC:
+                return 'matriculados_cc'
+            if c == VALOR_SI:
+                return 'matriculados_si'
 
-    else:
-        if c == VALOR_CC:
-            return 'egressos_cc'
-        if c == VALOR_SI:
-            return 'egressos_si'
+        else:
+            if c == VALOR_CC:
+                return 'egressos_cc'
+            if c == VALOR_SI:
+                return 'egressos_si'
 
     return None
 

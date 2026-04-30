@@ -1,9 +1,3 @@
-"""
-views.py
---------
-Fluxo: upload → revisão (mover/remover) → confirmar sync com Google Groups
-"""
-
 import json
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
@@ -60,11 +54,6 @@ def revisao(request):
         'total': total,
         'grupos_meta': grupos_meta,
     })
-
-
-# ------------------------------------------------------------------
-# 3. Endpoints AJAX chamados pelo JS da tela de revisão
-# ------------------------------------------------------------------
 
 @require_POST
 def mover_aluno(request):
@@ -125,7 +114,9 @@ def confirmar_sync(request):
     try:
         sincronizar_grupos(grupos)
     except Exception as e:
-        messages.error(request, f'Erro ao sincronizar com o Google: {e}')
+        import traceback
+        traceback.print_exc()
+        messages.error(request, f'Erro ao sincronizar com o Google: {repr(e)}')
         return redirect('revisao')
 
     del request.session['grupos']
