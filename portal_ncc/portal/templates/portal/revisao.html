@@ -150,6 +150,42 @@
     font-size: 0.875rem; color: #6b6b66;
   }
   .resumo strong { color: #1a1a18; }
+
+  .loading-bg {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.78);
+    z-index: 999;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .loading-bg.ativo {
+    display: flex;
+  }
+
+  .spinner {
+    width: 54px;
+    height: 54px;
+    border: 5px solid #d9d9d9;
+    border-top-color: #1D9E75;
+    border-radius: 50%;
+    animation: girar 0.8s linear infinite;
+  }
+
+  @keyframes girar {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .loading-texto {
+    font-size: 0.95rem;
+    color: #1a1a18;
+  }
 </style>
 </head>
 <body>
@@ -224,9 +260,11 @@
     <p>Executando teste nos grupos de teste do Google Workspace.</p>
     <div class="modal-acoes">
       <button class="btn-cancelar" onclick="fecharModal()">Cancelar</button>
-      <form method="post" action="{% url 'confirmar_sync' %}" style="display:inline">
+      <form method="post" action="{% url 'confirmar_sync' %}" style="display:inline" onsubmit="mostrarLoading()">
         {% csrf_token %}
-        <button type="submit" class="btn-confirmar">Confirmar e sincronizar</button>
+        <button type="submit" class="btn-confirmar" id="btn-confirmar-sync">
+          Confirmar e sincronizar
+        </button>
       </form>
     </div>
   </div>
@@ -234,6 +272,10 @@
 
 <!-- Toast de feedback -->
 <div id="toast"></div>
+<div class="loading-bg" id="loading-bg">
+  <div class="spinner"></div>
+  <div class="loading-texto">Sincronizando grupos... isso pode levar alguns minutos.</div>
+</div>
 
 <script>
 const CSRF = document.cookie.match(/csrftoken=([^;]+)/)?.[1] ?? '';
@@ -351,6 +393,18 @@ function toast(msg) {
   el.textContent = msg;
   el.classList.add('visivel');
   setTimeout(() => el.classList.remove('visivel'), 2800);
+}
+
+function mostrarLoading() {
+  const loading = document.getElementById('loading-bg');
+  const btn = document.getElementById('btn-confirmar-sync');
+
+  if (loading) loading.classList.add('ativo');
+
+  if (btn) {
+    btn.disabled = true;
+    btn.innerText = 'Sincronizando...';
+  }
 }
 </script>
 </body>
