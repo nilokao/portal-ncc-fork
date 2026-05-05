@@ -22,14 +22,13 @@ MAX_TENTATIVAS = 5
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
-
+# ------------ ALTERAR AQUI ------------ #
 GRUPOS_EMAIL = {
     "matriculados_cc": "matriculados-teste@inf.ufsm.br",
     "matriculados_si": "matriculados-teste@inf.ufsm.br",
     "egressos_cc": "egressos-teste@inf.ufsm.br",
     "egressos_si": "egressos-teste@inf.ufsm.br",
 }
-
 
 def _get_service():
     creds = None
@@ -61,10 +60,8 @@ def _get_service():
 
     return build("admin", "directory_v1", credentials=creds)
 
-
 def _email_valido(email: str) -> bool:
     return bool(EMAIL_RE.match(email.strip().lower()))
-
 
 def _normalizar_email(email: str) -> str | None:
     email = (email or "").strip().lower()
@@ -84,7 +81,6 @@ def _normalizar_email(email: str) -> str | None:
 
     return f"{usuario}@{dominio}"
 
-
 def _modo_da_chave(chave: str) -> str:
     if chave.startswith("matriculados"):
         return "sync_exato"
@@ -93,7 +89,6 @@ def _modo_da_chave(chave: str) -> str:
         return "somente_adicionar"
 
     raise ValueError(f"tipo de grupo desconhecido: {chave}")
-
 
 def _montar_planejamento(grupos: dict) -> dict:
     planejamento = {}
@@ -131,7 +126,6 @@ def _montar_planejamento(grupos: dict) -> dict:
 
     return planejamento
 
-
 def _executar_com_retry(request, descricao: str, tentativas: int = MAX_TENTATIVAS):
     for tentativa in range(1, tentativas + 1):
         try:
@@ -161,7 +155,6 @@ def _executar_com_retry(request, descricao: str, tentativas: int = MAX_TENTATIVA
 
     raise RuntimeError(f"falhou após {tentativas} tentativas: {descricao}")
 
-
 def _listar_membros(service, grupo_email: str) -> dict[str, str]:
     membros = {}
 
@@ -180,7 +173,6 @@ def _listar_membros(service, grupo_email: str) -> dict[str, str]:
         req = service.members().list_next(req, resp)
 
     return membros
-
 
 def _adicionar_membro(service, grupo_email: str, email: str) -> bool:
     try:
@@ -255,7 +247,6 @@ def _remover_membro(service, grupo_email: str, email: str) -> bool:
         print(f"erro inesperado ao remover {email} de {grupo_email}: {repr(e)}")
         return False
 
-
 def _sincronizar_matriculados(service, grupo_email: str, emails_desejados: set[str]):
     membros_atuais = _listar_membros(service, grupo_email)
     emails_atuais = set(membros_atuais.keys())
@@ -306,7 +297,6 @@ def _sincronizar_matriculados(service, grupo_email: str, emails_desejados: set[s
         "erros_adicao": erros_adicao,
         "erros_remocao": erros_remocao,
     }
-
 
 def _sincronizar_egressos(service, grupo_email: str, emails_desejados: set[str]):
     membros_atuais = _listar_membros(service, grupo_email)

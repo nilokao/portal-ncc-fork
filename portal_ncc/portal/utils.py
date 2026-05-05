@@ -15,7 +15,6 @@ VALOR_MATRICULADO = "Estudante Regular"
 VALOR_CC = "307"
 VALOR_SI = "314"
 
-
 def processar_arquivo(arquivo) -> dict:
     grupos = {
         "matriculados_cc": [],
@@ -47,7 +46,6 @@ def processar_arquivo(arquivo) -> dict:
 
     return grupos
 
-
 def _ler_arquivo(arquivo) -> pd.DataFrame:
     nome = arquivo.name.lower()
 
@@ -61,7 +59,6 @@ def _ler_arquivo(arquivo) -> pd.DataFrame:
         return pd.read_excel(arquivo, engine="openpyxl", dtype=str)
 
     raise ValueError("Formato não suportado. Use CSV, ODS ou XLSX.")
-
 
 def _ler_csv(arquivo) -> pd.DataFrame:
     conteudo = arquivo.read()
@@ -78,12 +75,10 @@ def _ler_csv(arquivo) -> pd.DataFrame:
 
     return pd.read_csv(io.StringIO(texto), sep=sep, dtype=str)
 
-
 def _normalizar_colunas(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     df.columns = [str(col).strip() for col in df.columns]
     return df
-
 
 def _validar_colunas(df: pd.DataFrame):
     obrigatorias = [
@@ -105,7 +100,6 @@ def _validar_colunas(df: pd.DataFrame):
             + f". Colunas disponíveis: {list(df.columns)}"
         )
 
-
 def normalizar_email(valor) -> str | None:
     email = str(valor or "").strip().lower()
 
@@ -122,7 +116,6 @@ def normalizar_email(valor) -> str | None:
         dominio = "gmail.com"
 
     return f"{usuario}@{dominio}"
-
 
 def _classificar(situacao: str, curso: str) -> str | None:
     s = situacao.lower()
@@ -143,7 +136,6 @@ def _classificar(situacao: str, curso: str) -> str | None:
             return "egressos_si"
 
     return None
-
 
 def inspecionar_colunas(arquivo) -> dict:
     df = _ler_arquivo(arquivo)

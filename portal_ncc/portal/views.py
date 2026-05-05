@@ -79,7 +79,6 @@ def mover_aluno(request):
 
     return JsonResponse({'ok': True})
 
-
 @require_POST
 def remover_aluno(request):
     """Remove um aluno de um grupo (não vai para nenhum outro)."""
@@ -122,7 +121,6 @@ def confirmar_sync(request):
     del request.session['grupos']
     messages.success(request, 'Grupos sincronizados com sucesso!')
     return redirect('sucesso')
-
 
 def sucesso(request):
     return render(request, 'portal/sucesso.html')

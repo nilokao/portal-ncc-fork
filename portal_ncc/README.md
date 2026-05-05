@@ -4,8 +4,6 @@ Aplicação em Django para processar uma planilha de alunos, separar os registro
 
 O sistema usa login manual do Google. Ou seja: o professor que for usar a aplicação deve fazer login no navegador com a conta Google Workspace que tem permissão para gerenciar os grupos.
 
-Se o professor usa a mesma conta institucional já autorizada para administrar os grupos, basta fazer login com essa conta quando o Google solicitar.
-
 ---
 
 ## Requisitos
@@ -106,6 +104,8 @@ Ao abrir o arquivo, ele deve começar assim:
 ```
 
 Se começar com `"web"`, a credencial foi criada no tipo errado.
+
+Preciso enviar para o professor por algum meio seguro, não pode ser público.
 
 ---
 
@@ -218,7 +218,7 @@ GRUPOS_EMAIL = {
 }
 ```
 
-Altere os valores conforme os grupos reais do Google Workspace.
+Altere os valores conforme os grupos reais do Google Workspace, no `google_service.py`, pois os emails estão os de teste, já foram devidamente testados.
 
 ---
 
