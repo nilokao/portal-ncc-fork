@@ -1,30 +1,164 @@
 <!DOCTYPE html>
 <html lang="pt-br">
-<head>
-<meta charset="UTF-8">
-<title>Sincronizado - Portal Acadêmico</title>
-<style>
-  body { font-family: system-ui, sans-serif; background: #f5f5f0; min-height: 100vh;
-         display: flex; align-items: center; justify-content: center; }
-  .card { background: #fff; border-radius: 12px; border: 1px solid #e0dfd8;
-          padding: 2.5rem; max-width: 400px; text-align: center; }
-  .icone { width: 48px; height: 48px; background: #e1f5ee; border-radius: 50%;
-           display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; }
-  .icone svg { width: 24px; height: 24px; stroke: #0F6E56; fill: none; stroke-width: 2.5; }
-  h1 { font-size: 1.15rem; font-weight: 500; margin-bottom: 0.5rem; }
-  p  { font-size: 0.875rem; color: #6b6b66; line-height: 1.6; margin-bottom: 1.5rem; }
-  a  { display: inline-block; padding: 0.65rem 1.4rem; border-radius: 8px;
-       background: #1D9E75; color: #fff; text-decoration: none; font-size: 0.9rem; }
-</style>
-</head>
-<body>
-<div class="card">
-  <div class="icone">
-    <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-  </div>
-  <h1>Grupos sincronizados!</h1>
-  <p>Os grupos do Google Workspace foram atualizados com sucesso.</p>
-  <a href="{% url 'upload' %}">Importar outro arquivo</a>
-</div>
-</body>
+    <head>
+        <meta charset="UTF-8">
+        <title>Sincronização concluída</title>
+        <style>
+            body {
+            font-family: system-ui, sans-serif;
+            background: #d4d8db;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #1a1a18;
+            padding: 1.5rem;
+            }
+            .card {
+            background: white;
+            border: 1px solid #e0dfd8;
+            border-radius: 14px;
+            padding: 2rem;
+            width: 100%;
+            max-width: 50vw;
+            box-shadow: 0 8px 28px rgba(0,0,0,0.06);
+            text-align: center;
+            }
+            h1 {
+            font-size: 1.35rem;
+            margin-bottom: 0.5rem;
+            }
+            a {
+            display: inline-block;
+            margin-top: 1rem;
+            padding: 0.85rem 1rem;
+            border-radius: 9px;
+            text-decoration: none;
+            font-weight: 600;
+            background: #1D9E75;
+            color: white;
+            }
+            .erro-box {
+            display: none;
+            margin-top: 1.5rem;
+            background: #fff5f5;
+            border: 1px solid #fecaca;
+            color: #7f1d1d;
+            border-radius: 10px;
+            padding: 1rem;
+            max-height: 320px;
+            overflow-y: auto;
+            font-size: 0.875rem;
+            }
+            .erro-box.ativo {
+            display: block;
+            }
+            .erro-item {
+            padding: 0.65rem 0;
+            border-bottom: 1px solid #fecaca;
+            }
+            .erro-item:last-child {
+            border-bottom: none;
+            }
+            .erro-email {
+            font-weight: 700;
+            }
+            .erro-msg {
+            font-size: 0.8rem;
+            margin-top: 0.25rem;
+            color: #991b1b;
+            word-break: break-word;
+            }
+            .toast {
+            position: fixed;
+            right: 1.25rem;
+            bottom: 1.25rem;
+            background: #1a1a18;
+            color: white;
+            padding: 1rem 1.25rem;
+            border-radius: 10px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+            max-width: 380px;
+            display: none;
+            z-index: 1000;
+            font-size: 0.9rem;
+            }
+            .toast.ativo {
+            display: block;
+            }
+            .toast button {
+            margin-top: 0.75rem;
+            border: none;
+            border-radius: 7px;
+            padding: 0.5rem 0.75rem;
+            background: #1D9E75;
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+            }
+            .ok {
+            background: #e1f5ee;
+            color: #085041;
+            border: 1px solid #b7ead7;
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            margin-top: 1rem;
+            }
+            .alerta {
+            background: #fff5f5;
+            color: #7f1d1d;
+            border: 1px solid #fecaca;
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            margin-top: 1rem;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <h1>Sincronização concluída</h1>
+            <strong>AVISO: NÃO SE ESQUEÇA DE ALTERAR OS ADMINISTRADORES DOS GRUPOS DE MATRÍCULADOS.</strong>
+            {% if erros_sync %}
+            <div class="alerta">
+                A sincronização terminou, mas {{ qtd_erros_sync }} e-mail(s) tiveram erro, o resto foi salvo nos grupos corretamente.
+            </div>
+            {% else %}
+            <div class="ok">
+                Todos os grupos foram sincronizados sem erros registrados.
+            </div>
+            {% endif %}
+            {% if erros_sync %}
+            <div class="erro-box" id="erro-box">
+                <strong>E-mails não cadastrados/removidos:</strong>
+                {% for erro in erros_sync %}
+                <div class="erro-item">
+                    <div class="erro-email">{{ erro.email }}</div>
+                    <div>Grupo: {{ erro.grupo }}</div>
+                    <div>Tipo: {{ erro.tipo }}</div>
+                    <div>Status: {{ erro.status }}</div>
+                    <div class="erro-msg">{{ erro.mensagem }}</div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            <a href="{% url 'voltar_upload' %}">Voltar ao início</a>
+        </div>
+        {% if erros_sync %}
+        <div class="toast ativo" id="toast-erros">
+            <strong>Atenção:</strong><br>
+            {{ qtd_erros_sync }} e-mail(s) tiveram erro durante a sincronização.
+            <br>
+            <button onclick="mostrarErros()">Ver detalhes</button>
+        </div>
+        {% endif %}
+        <script>
+            function mostrarErros() {
+              const box = document.getElementById('erro-box');
+              const toast = document.getElementById('toast-erros');
+            
+              if (box) box.classList.add('ativo');
+              if (toast) toast.classList.remove('ativo');
+            }
+        </script>
+    </body>
 </html>

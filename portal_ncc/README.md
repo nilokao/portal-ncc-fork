@@ -219,6 +219,7 @@ GRUPOS_EMAIL = {
 ```
 
 Altere os valores conforme os grupos reais do Google Workspace, no `google_service.py`, pois os emails estão os de teste, já foram devidamente testados.
+AVISO: NÃO SE ESQUEÇA DE ALTERAR OS ADMINISTRADORES DOS GRUPOS DE MATRÍCULADOS.
 
 ---
 

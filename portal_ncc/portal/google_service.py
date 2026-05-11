@@ -10,25 +10,24 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
 
-SCOPES = [
-    "https://www.googleapis.com/auth/admin.directory.group.member"
-]
+SCOPES = ["https://www.googleapis.com/auth/admin.directory.group.member"]
 
 CLIENT_SECRET_FILE = os.getenv("GOOGLE_CLIENT_SECRET_FILE", "client_secret.json")
 TOKEN_FILE = os.getenv("GOOGLE_TOKEN_FILE", "token.json")
 
-SLEEP_ENTRE_CHAMADAS = 0.5
+SLEEP_ENTRE_CHAMADAS = 0.2
 MAX_TENTATIVAS = 5
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
-# ------------ ALTERAR AQUI ------------ #
+
 GRUPOS_EMAIL = {
-    "matriculados_cc": "matriculados-teste@inf.ufsm.br",
-    "matriculados_si": "matriculados-teste@inf.ufsm.br",
-    "egressos_cc": "egressos-teste@inf.ufsm.br",
-    "egressos_si": "egressos-teste@inf.ufsm.br",
+    "matriculados_cc": "matriculados-cc@inf.ufsm.br",
+    "matriculados_si": "matriculados-si@inf.ufsm.br",
+    "egressos_cc": "egressos-cc@inf.ufsm.br",
+    "egressos_si": "egressos-si@inf.ufsm.br",
 }
+
 
 def _get_service():
     creds = None
@@ -41,32 +40,25 @@ def _get_service():
             creds.refresh(Request())
         else:
             if not os.path.exists(CLIENT_SECRET_FILE):
-                raise FileNotFoundError(
-                    f"arquivo OAuth não encontrado: {CLIENT_SECRET_FILE}"
-                )
+                raise FileNotFoundError(f"arquivo OAuth não encontrado: {CLIENT_SECRET_FILE}")
 
-            flow = InstalledAppFlow.from_client_secrets_file(
-                CLIENT_SECRET_FILE,
-                SCOPES,
-            )
-
-            creds = flow.run_local_server(
-                port=0,
-                prompt="consent",
-            )
+            flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRET_FILE, SCOPES)
+            creds = flow.run_local_server(port=0, prompt="consent")
 
         with open(TOKEN_FILE, "w", encoding="utf-8") as token:
             token.write(creds.to_json())
 
     return build("admin", "directory_v1", credentials=creds)
 
+
 def _email_valido(email: str) -> bool:
     return bool(EMAIL_RE.match(email.strip().lower()))
+
 
 def _normalizar_email(email: str) -> str | None:
     email = (email or "").strip().lower()
 
-    if not email:
+    if not email or email in ("nan", "none", "null"):
         return None
 
     if not _email_valido(email):
@@ -81,6 +73,7 @@ def _normalizar_email(email: str) -> str | None:
 
     return f"{usuario}@{dominio}"
 
+
 def _modo_da_chave(chave: str) -> str:
     if chave.startswith("matriculados"):
         return "sync_exato"
@@ -89,6 +82,7 @@ def _modo_da_chave(chave: str) -> str:
         return "somente_adicionar"
 
     raise ValueError(f"tipo de grupo desconhecido: {chave}")
+
 
 def _montar_planejamento(grupos: dict) -> dict:
     planejamento = {}
@@ -126,6 +120,7 @@ def _montar_planejamento(grupos: dict) -> dict:
 
     return planejamento
 
+
 def _executar_com_retry(request, descricao: str, tentativas: int = MAX_TENTATIVAS):
     for tentativa in range(1, tentativas + 1):
         try:
@@ -155,6 +150,7 @@ def _executar_com_retry(request, descricao: str, tentativas: int = MAX_TENTATIVA
 
     raise RuntimeError(f"falhou após {tentativas} tentativas: {descricao}")
 
+
 def _listar_membros(service, grupo_email: str) -> dict[str, str]:
     membros = {}
 
@@ -174,78 +170,89 @@ def _listar_membros(service, grupo_email: str) -> dict[str, str]:
 
     return membros
 
-def _adicionar_membro(service, grupo_email: str, email: str) -> bool:
+
+def _adicionar_membro(service, grupo_email: str, email: str):
     try:
         req = service.members().insert(
             groupKey=grupo_email,
-            body={
-                "email": email,
-                "role": "MEMBER",
-            },
+            body={"email": email, "role": "MEMBER"},
         )
 
         _executar_com_retry(req, f"adicionar {email} em {grupo_email}")
 
         print(f"adicionado: {email} em {grupo_email}")
-        return True
+        return True, None
 
     except HttpError as e:
         status = e.resp.status
 
         if status == 409:
             print(f"já estava no grupo, pulando: {email}")
-            return True
+            return True, None
 
-        if status == 404:
-            print(
-                f"email não encontrado ou externo não permitido, ignorando: "
-                f"{email} em {grupo_email}"
-            )
-            return False
-
-        if status == 400:
-            print(f"email inválido, ignorando: {email} em {grupo_email}")
-            return False
-
-        if status == 403:
-            print(
-                f"sem permissão para adicionar {email} em {grupo_email}. "
-                f"talvez o grupo não permita membros externos."
-            )
-            return False
+        erro = {
+            "email": email,
+            "grupo": grupo_email,
+            "tipo": "adição",
+            "status": status,
+            "mensagem": str(e),
+        }
 
         print(f"erro ao adicionar {email} em {grupo_email}: {status} - {e}")
-        return False
+        return False, erro
 
     except Exception as e:
-        print(f"erro inesperado ao adicionar {email} em {grupo_email}: {repr(e)}")
-        return False
+        erro = {
+            "email": email,
+            "grupo": grupo_email,
+            "tipo": "adição",
+            "status": "erro",
+            "mensagem": repr(e),
+        }
 
-def _remover_membro(service, grupo_email: str, email: str) -> bool:
+        print(f"erro inesperado ao adicionar {email} em {grupo_email}: {repr(e)}")
+        return False, erro
+
+
+def _remover_membro(service, grupo_email: str, email: str):
     try:
-        req = service.members().delete(
-            groupKey=grupo_email,
-            memberKey=email,
-        )
+        req = service.members().delete(groupKey=grupo_email, memberKey=email)
 
         _executar_com_retry(req, f"remover {email} de {grupo_email}")
 
         print(f"removido: {email} de {grupo_email}")
-        return True
+        return True, None
 
     except HttpError as e:
         status = e.resp.status
 
         if status == 404:
             print(f"já não estava no grupo, pulando remoção: {email}")
-            return True
+            return True, None
+
+        erro = {
+            "email": email,
+            "grupo": grupo_email,
+            "tipo": "remoção",
+            "status": status,
+            "mensagem": str(e),
+        }
 
         print(f"erro ao remover {email} de {grupo_email}: {status} - {e}")
-        return False
+        return False, erro
 
     except Exception as e:
+        erro = {
+            "email": email,
+            "grupo": grupo_email,
+            "tipo": "remoção",
+            "status": "erro",
+            "mensagem": repr(e),
+        }
+
         print(f"erro inesperado ao remover {email} de {grupo_email}: {repr(e)}")
-        return False
+        return False, erro
+
 
 def _sincronizar_matriculados(service, grupo_email: str, emails_desejados: set[str]):
     membros_atuais = _listar_membros(service, grupo_email)
@@ -264,10 +271,10 @@ def _sincronizar_matriculados(service, grupo_email: str, emails_desejados: set[s
 
     print("adicionando novos matriculados...")
     for email in sorted(adicionar):
-        ok = _adicionar_membro(service, grupo_email, email)
+        ok, erro = _adicionar_membro(service, grupo_email, email)
 
-        if not ok:
-            erros_adicao.append(email)
+        if not ok and erro:
+            erros_adicao.append(erro)
 
         time.sleep(SLEEP_ENTRE_CHAMADAS)
 
@@ -280,10 +287,10 @@ def _sincronizar_matriculados(service, grupo_email: str, emails_desejados: set[s
             protegidos.append(email)
             continue
 
-        ok = _remover_membro(service, grupo_email, email)
+        ok, erro = _remover_membro(service, grupo_email, email)
 
-        if not ok:
-            erros_remocao.append(email)
+        if not ok and erro:
+            erros_remocao.append(erro)
 
         time.sleep(SLEEP_ENTRE_CHAMADAS)
 
@@ -298,6 +305,7 @@ def _sincronizar_matriculados(service, grupo_email: str, emails_desejados: set[s
         "erros_remocao": erros_remocao,
     }
 
+
 def _sincronizar_egressos(service, grupo_email: str, emails_desejados: set[str]):
     membros_atuais = _listar_membros(service, grupo_email)
     emails_atuais = set(membros_atuais.keys())
@@ -311,10 +319,10 @@ def _sincronizar_egressos(service, grupo_email: str, emails_desejados: set[str])
     erros_adicao = []
 
     for email in sorted(adicionar):
-        ok = _adicionar_membro(service, grupo_email, email)
+        ok, erro = _adicionar_membro(service, grupo_email, email)
 
-        if not ok:
-            erros_adicao.append(email)
+        if not ok and erro:
+            erros_adicao.append(erro)
 
         time.sleep(SLEEP_ENTRE_CHAMADAS)
 
@@ -347,19 +355,9 @@ def sincronizar_grupos(grupos: dict):
         print(f"emails desejados: {len(emails_desejados)}")
 
         if modo == "sync_exato":
-            resultado[grupo_email] = _sincronizar_matriculados(
-                service,
-                grupo_email,
-                emails_desejados,
-            )
-
+            resultado[grupo_email] = _sincronizar_matriculados(service, grupo_email, emails_desejados)
         elif modo == "somente_adicionar":
-            resultado[grupo_email] = _sincronizar_egressos(
-                service,
-                grupo_email,
-                emails_desejados,
-            )
-
+            resultado[grupo_email] = _sincronizar_egressos(service, grupo_email, emails_desejados)
         else:
             raise ValueError(f"modo inválido: {modo}")
 

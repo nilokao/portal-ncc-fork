@@ -1,411 +1,389 @@
 {% load portal_extras %}
 <!DOCTYPE html>
 <html lang="pt-br">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Revisão - Portal Acadêmico</title>
-<style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: system-ui, sans-serif;
-    background: #f5f5f0;
-    min-height: 100vh;
-    padding: 2rem 1.5rem;
-    color: #1a1a18;
-  }
-
-  /* ---- Header ---- */
-  .topo {
-    max-width: 1100px; margin: 0 auto 2rem;
-    display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 1rem;
-  }
-  .topo h1 { font-size: 1.25rem; font-weight: 500; }
-  .topo p  { font-size: 0.875rem; color: #6b6b66; margin-top: 0.2rem; }
-  .btn-sync {
-    padding: 0.65rem 1.4rem; border-radius: 8px; border: none;
-    background: #1D9E75; color: #fff; font-size: 0.9rem; font-weight: 500;
-    cursor: pointer; transition: background 0.2s; white-space: nowrap;
-  }
-  .btn-sync:hover { background: #0F6E56; }
-
-  /* ---- Grid de cards ---- */
-  .grade {
-    max-width: 90vw; margin: 0 auto;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 1rem;
-  }
-
-  .card {
-    background: #fff;
-    border-radius: 12px;
-    border: 1px solid #e0dfd8;
-    display: flex; flex-direction: column;
-    overflow: hidden;
-  }
-  .card-header {
-    padding: 1rem 1.25rem 0.75rem;
-    border-bottom: 1px solid #f0efe8;
-  }
-  .card-titulo { font-size: 0.95rem; font-weight: 500; }
-  .card-badge {
-    display: inline-block; margin-top: 0.3rem;
-    padding: 0.15rem 0.6rem; border-radius: 20px;
-    font-size: 0.75rem; font-weight: 500;
-  }
-  .badge-mat  { background: #e1f5ee; color: #085041; }
-  .badge-egr  { background: #faeeda; color: #633806; }
-
-  .card-lista {
-    flex: 1;
-    overflow-y: auto;
-    max-height: 420px;
-    padding: 0.5rem 0;
-  }
-  .aluno-item {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 0.55rem 1.25rem;
-    border-bottom: 1px solid #f5f5f0;
-    gap: 0.5rem;
-  }
-  .aluno-item:last-child { border-bottom: none; }
-  .aluno-info { flex: 1; min-width: 0; }
-  .aluno-nome  { font-size: 0.875rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .aluno-email { font-size: 0.75rem; color: #9c9a92; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .aluno-acoes { display: flex; gap: 0.35rem; flex-shrink: 0; }
-
-  /* Botões de ação da linha */
-  .btn-acao {
-    padding: 0.25rem 0.5rem;
-    border-radius: 5px; border: 1px solid #e0dfd8;
-    background: #fff; font-size: 0.75rem; cursor: pointer;
-    color: #5f5e5a; transition: all 0.15s;
-  }
-  .btn-acao:hover { border-color: #b4b2a9; background: #f5f5f0; }
-  .btn-remover { color: #A32D2D; }
-  .btn-remover:hover { border-color: #f09595; background: #fcebeb; color: #791F1F; }
-
-  /* Dropdown de mover */
-  .mover-wrapper { position: relative; }
-  .mover-menu {
-    display: none;
-    position: absolute; right: 0; top: calc(100% + 4px);
-    background: #fff; border: 1px solid #e0dfd8; border-radius: 8px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-    z-index: 10; min-width: 190px; padding: 0.3rem 0;
-  }
-  .mover-menu.aberto { display: block; }
-  .mover-menu button {
-    display: block; width: 100%; text-align: left;
-    padding: 0.5rem 1rem; background: none; border: none;
-    font-size: 0.8rem; cursor: pointer; color: #3d3d3a;
-  }
-  .mover-menu button:hover { background: #f5f5f0; }
-
-  /* Vazio */
-  .vazio {
-    padding: 1.5rem 1.25rem; text-align: center;
-    font-size: 0.8rem; color: #b4b2a9;
-  }
-
-  /* Toast */
-  #toast {
-    position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%);
-    background: #1a1a18; color: #fff; padding: 0.6rem 1.2rem;
-    border-radius: 8px; font-size: 0.85rem; opacity: 0;
-    transition: opacity 0.3s; pointer-events: none; z-index: 100;
-  }
-  #toast.visivel { opacity: 1; }
-
-  /* Modal de confirmação */
-  .modal-bg {
-    display: none;
-    position: fixed; inset: 0; background: rgba(0,0,0,0.35);
-    align-items: center; justify-content: center; z-index: 50;
-  }
-  .modal-bg.aberto { display: flex; }
-  .modal {
-    background: #fff; border-radius: 12px; padding: 2rem;
-    max-width: 420px; width: 90%; box-shadow: 0 8px 32px rgba(0,0,0,0.12);
-  }
-  .modal h2 { font-size: 1.1rem; font-weight: 500; margin-bottom: 0.5rem; }
-  .modal p  { font-size: 0.875rem; color: #6b6b66; margin-bottom: 1.5rem; line-height: 1.6; }
-  .modal-acoes { display: flex; gap: 0.75rem; justify-content: flex-end; }
-  .btn-cancelar {
-    padding: 0.6rem 1.2rem; border-radius: 7px;
-    border: 1px solid #e0dfd8; background: #fff;
-    font-size: 0.875rem; cursor: pointer; color: #5f5e5a;
-  }
-  .btn-confirmar {
-    padding: 0.6rem 1.4rem; border-radius: 7px; border: none;
-    background: #1D9E75; color: #fff; font-size: 0.875rem;
-    font-weight: 500; cursor: pointer;
-  }
-  .btn-confirmar:hover { background: #0F6E56; }
-
-  /* Resumo total */
-  .resumo {
-    max-width: 1100px; margin: 0 auto 1.25rem;
-    font-size: 0.875rem; color: #6b6b66;
-  }
-  .resumo strong { color: #1a1a18; }
-
-  .loading-bg {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(255, 255, 255, 0.78);
-    z-index: 999;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .loading-bg.ativo {
-    display: flex;
-  }
-
-  .spinner {
-    width: 54px;
-    height: 54px;
-    border: 5px solid #d9d9d9;
-    border-top-color: #1D9E75;
-    border-radius: 50%;
-    animation: girar 0.8s linear infinite;
-  }
-
-  @keyframes girar {
-    to {
-      transform: rotate(360deg);
-    }
-  }
-
-  .loading-texto {
-    font-size: 0.95rem;
-    color: #1a1a18;
-  }
-</style>
-</head>
-<body>
-  {% if messages %}
-  <div style="max-width:1100px;margin:0 auto 1rem;">
-    {% for message in messages %}
-      <div style="padding:12px 16px;border-radius:8px;background:#fee2e2;color:#7f1d1d;margin-bottom:8px;">
-        {{ message }}
-      </div>
-    {% endfor %}
-  </div>
-{% endif %}
-<div class="topo">
-  <div>
-    <h1>Revisão dos grupos</h1>
-      <p>Confira, mova ou remova alunos antes de gerar a simulação dos grupos.</p>
-  </div>
-  <button class="btn-sync" onclick="abrirModal()">Sincronizar grupos</button>
-</div>
-
-<div class="resumo">
-  <strong id="total-global">{{ total }}</strong> aluno(s) classificado(s) no total
-</div>
-
-<!-- Cards dos 4 grupos -->
-<div class="grade">
-
-  {% for chave, label, badge_class in grupos_meta %}
-  <div class="card" id="card-{{ chave }}">
-    <div class="card-header">
-      <div class="card-titulo">{{ label }}</div>
-      <span class="card-badge {{ badge_class }}" id="badge-{{ chave }}">
-        {{ contagens|get_item:chave }} aluno(s)
-      </span>
-    </div>
-    <div class="card-lista" id="lista-{{ chave }}">
-      {% for aluno in grupos|get_item:chave %}
-      <div class="aluno-item" data-email="{{ aluno.email }}" data-grupo="{{ chave }}">
-        <div class="aluno-info">
-          <div class="aluno-nome">{{ aluno.nome }}</div>
-          <div class="aluno-email">{{ aluno.email }}</div>
-        </div>
-        <div class="aluno-acoes">
-          <div class="mover-wrapper">
-            <button class="btn-acao" onclick="toggleMover(this)">Mover ▾</button>
-            <div class="mover-menu">
-              {% for dest_chave, dest_label, _ in grupos_meta %}
-                {% if dest_chave != chave %}
-                <button onclick="moverAluno('{{ aluno.email }}', '{{ chave }}', '{{ dest_chave }}', this)">
-                  → {{ dest_label }}
-                </button>
-                {% endif %}
-              {% endfor %}
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Revisão - Portal Acadêmico</title>
+        <style>
+            *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+            body {
+            font-family: system-ui, sans-serif;
+            background: #d4d8db;
+            min-height: 100vh;
+            padding: 2rem 1.5rem;
+            color: #1a1a18;
+            }
+            /* ---- Header ---- */
+            .topo {
+            max-width: 1100px; margin: 0 auto 2rem;
+            display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 1rem;
+            }
+            .topo h1 { font-size: 1.25rem; font-weight: 500; }
+            .topo p  { font-size: 0.875rem; color: #6b6b66; margin-top: 0.2rem; }
+            .btn-sync {
+            padding: 0.65rem 1.4rem; border-radius: 8px; border: none;
+            background: #1D9E75; color: #fff; font-size: 0.9rem; font-weight: 500;
+            cursor: pointer; transition: background 0.2s; white-space: nowrap;
+            }
+            .btn-sync:hover { background: #0F6E56; }
+            /* ---- Grid de cards ---- */
+            .grade {
+            max-width: 90vw; margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1rem;
+            }
+            .card {
+            background: #fff;
+            border-radius: 12px;
+            border: 1px solid #e0dfd8;
+            display: flex; flex-direction: column;
+            overflow: hidden;
+            }
+            .card-header {
+            padding: 1rem 1.25rem 0.75rem;
+            border-bottom: 1px solid #f0efe8;
+            }
+            .card-titulo { font-size: 0.95rem; font-weight: 500; }
+            .card-badge {
+            display: inline-block; margin-top: 0.3rem;
+            padding: 0.15rem 0.6rem; border-radius: 20px;
+            font-size: 0.75rem; font-weight: 500;
+            }
+            .badge-mat  { background: #e1f5ee; color: #085041; }
+            .badge-egr  { background: #faeeda; color: #633806; }
+            .card-lista {
+            flex: 1;
+            overflow-y: auto;
+            max-height: 420px;
+            padding: 0.5rem 0;
+            }
+            .aluno-item {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0.55rem 1.25rem;
+            border-bottom: 1px solid #f5f5f0;
+            gap: 0.5rem;
+            }
+            .aluno-item:last-child { border-bottom: none; }
+            .aluno-info { flex: 1; min-width: 0; }
+            .aluno-nome  { font-size: 0.875rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .aluno-email { font-size: 0.75rem; color: #9c9a92; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .aluno-acoes { display: flex; gap: 0.35rem; flex-shrink: 0; }
+            /* Botões de ação da linha */
+            .btn-acao {
+            padding: 0.25rem 0.5rem;
+            border-radius: 5px; border: 1px solid #e0dfd8;
+            background: #fff; font-size: 0.75rem; cursor: pointer;
+            color: #5f5e5a; transition: all 0.15s;
+            }
+            .btn-acao:hover { border-color: #b4b2a9; background: #f5f5f0; }
+            .btn-remover { color: #A32D2D; }
+            .btn-remover:hover { border-color: #f09595; background: #fcebeb; color: #791F1F; }
+            /* Dropdown de mover */
+            .mover-wrapper { position: relative; }
+            .mover-menu {
+            display: none;
+            position: absolute; right: 0; top: calc(100% + 4px);
+            background: #fff; border: 1px solid #e0dfd8; border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+            z-index: 10; min-width: 190px; padding: 0.3rem 0;
+            }
+            .mover-menu.aberto { display: block; }
+            .mover-menu button {
+            display: block; width: 100%; text-align: left;
+            padding: 0.5rem 1rem; background: none; border: none;
+            font-size: 0.8rem; cursor: pointer; color: #3d3d3a;
+            }
+            .mover-menu button:hover { background: #f5f5f0; }
+            /* Vazio */
+            .vazio {
+            padding: 1.5rem 1.25rem; text-align: center;
+            font-size: 0.8rem; color: #b4b2a9;
+            }
+            /* Toast */
+            #toast {
+            position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%);
+            background: #1a1a18; color: #fff; padding: 0.6rem 1.2rem;
+            border-radius: 8px; font-size: 0.85rem; opacity: 0;
+            transition: opacity 0.3s; pointer-events: none; z-index: 100;
+            }
+            #toast.visivel { opacity: 1; }
+            /* Modal de confirmação */
+            .modal-bg {
+            display: none;
+            position: fixed; inset: 0; background: rgba(0,0,0,0.35);
+            align-items: center; justify-content: center; z-index: 50;
+            }
+            .modal-bg.aberto { display: flex; }
+            .modal {
+            background: #fff; border-radius: 12px; padding: 2rem;
+            max-width: 420px; width: 90%; box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+            }
+            .modal h2 { font-size: 1.1rem; font-weight: 500; margin-bottom: 0.5rem; }
+            .modal p  { font-size: 0.875rem; color: #6b6b66; margin-bottom: 1.5rem; line-height: 1.6; }
+            .modal-acoes { display: flex; gap: 0.75rem; justify-content: flex-end; }
+            .btn-cancelar {
+            padding: 0.6rem 1.2rem; border-radius: 7px;
+            border: 1px solid #e0dfd8; background: #fff;
+            font-size: 0.875rem; cursor: pointer; color: #5f5e5a;
+            }
+            .btn-confirmar {
+            padding: 0.6rem 1.4rem; border-radius: 7px; border: none;
+            background: #1D9E75; color: #fff; font-size: 0.875rem;
+            font-weight: 500; cursor: pointer;
+            }
+            .btn-confirmar:hover { background: #0F6E56; }
+            /* Resumo total */
+            .resumo {
+            max-width: 1100px; margin: 0 auto 1.25rem;
+            font-size: 0.875rem; color: #6b6b66;
+            }
+            .resumo strong { color: #1a1a18; }
+            .loading-bg {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.78);
+            z-index: 999;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 1rem;
+            }
+            .loading-bg.ativo {
+            display: flex;
+            }
+            .spinner {
+            width: 54px;
+            height: 54px;
+            border: 5px solid #d9d9d9;
+            border-top-color: #1D9E75;
+            border-radius: 50%;
+            animation: girar 0.8s linear infinite;
+            }
+            @keyframes girar {
+            to {
+            transform: rotate(360deg);
+            }
+            }
+            .loading-texto {
+            font-size: 0.95rem;
+            color: #1a1a18;
+            }
+        </style>
+    </head>
+    <body>
+        {% if messages %}
+        <div style="max-width:1100px;margin:0 auto 1rem;">
+            {% for message in messages %}
+            <div style="padding:12px 16px;border-radius:8px;background:#fee2e2;color:#7f1d1d;margin-bottom:8px;">
+                {{ message }}
             </div>
-          </div>
-          <button class="btn-acao btn-remover" onclick="removerAluno('{{ aluno.email }}', '{{ chave }}', this)">Remover</button>
+            {% endfor %}
         </div>
-      </div>
-      {% empty %}
-      <div class="vazio">Nenhum aluno neste grupo</div>
-      {% endfor %}
-    </div>
-  </div>
-  {% endfor %}
-
-</div>
-
-<!-- Modal de confirmação -->
-<div class="modal-bg" id="modal-bg">
-  <div class="modal">
-    <h2>Confirmar sincronização</h2>
-    <p>Executando teste nos grupos de teste do Google Workspace.</p>
-    <div class="modal-acoes">
-      <button class="btn-cancelar" onclick="fecharModal()">Cancelar</button>
-      <form method="post" action="{% url 'confirmar_sync' %}" style="display:inline" onsubmit="mostrarLoading()">
-        {% csrf_token %}
-        <button type="submit" class="btn-confirmar" id="btn-confirmar-sync">
-          Confirmar e sincronizar
-        </button>
-      </form>
-    </div>
-  </div>
-</div>
-
-<!-- Toast de feedback -->
-<div id="toast"></div>
-<div class="loading-bg" id="loading-bg">
-  <div class="spinner"></div>
-  <div class="loading-texto">Sincronizando grupos... isso pode levar alguns minutos.</div>
-</div>
-
-<script>
-const CSRF = document.cookie.match(/csrftoken=([^;]+)/)?.[1] ?? '';
-
-// ----- Mover aluno -----
-function moverAluno(email, de, para, btnEl) {
-  fetch("{% url 'mover_aluno' %}", {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
-    body: JSON.stringify({ email, de, para })
-  })
-  .then(r => r.json())
-  .then(data => {
-    if (!data.ok) { toast('Erro: ' + data.erro); return; }
-
-    // Move o DOM sem recarregar
-    const item = document.querySelector(`.aluno-item[data-email="${email}"][data-grupo="${de}"]`);
-    if (!item) return;
-
-    // Atualiza atributo grupo
-    item.dataset.grupo = para;
-
-    // Remove aviso "vazio" do destino se existir
-    const listaDestino = document.getElementById('lista-' + para);
-    const vazio = listaDestino.querySelector('.vazio');
-    if (vazio) vazio.remove();
-
-    // Atualiza os botões de mover do item para refletir novo grupo
-    item.querySelectorAll('.mover-menu button').forEach(b => {
-      const destChave = b.getAttribute('onclick').match(/'([^']+)',\s*this/)?.[1];
-      if (destChave === para) {
-        b.closest('.aluno-item').setAttribute('data-grupo', para);
-      }
-    });
-
-    listaDestino.appendChild(item);
-
-    // Se lista de origem ficou vazia, adiciona aviso
-    const listaOrigem = document.getElementById('lista-' + de);
-    if (listaOrigem.querySelectorAll('.aluno-item').length === 0) {
-      listaOrigem.innerHTML = '<div class="vazio">Nenhum aluno neste grupo</div>';
-    }
-
-    atualizarBadges();
-    toast(`Aluno movido para ${para.replace('_', ' ')}.`);
-    fecharTodosMenus();
-  })
-  .catch(() => toast('Falha na requisição.'));
-}
-
-// ----- Remover aluno -----
-function removerAluno(email, grupo, btnEl) {
-  if (!confirm('Remover este aluno da lista?')) return;
-
-  fetch("{% url 'remover_aluno' %}", {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
-    body: JSON.stringify({ email, grupo })
-  })
-  .then(r => r.json())
-  .then(data => {
-    if (!data.ok) { toast('Erro: ' + data.erro); return; }
-
-    const item = document.querySelector(`.aluno-item[data-email="${email}"][data-grupo="${grupo}"]`);
-    const lista = document.getElementById('lista-' + grupo);
-    item?.remove();
-
-    if (lista && lista.querySelectorAll('.aluno-item').length === 0) {
-      lista.innerHTML = '<div class="vazio">Nenhum aluno neste grupo</div>';
-    }
-
-    atualizarBadges();
-    toast('Aluno removido.');
-  })
-  .catch(() => toast('Falha na requisição.'));
-}
-
-// ----- Badges e total -----
-function atualizarBadges() {
-  let totalGlobal = 0;
-  ['matriculados_cc','matriculados_si','egressos_cc','egressos_si'].forEach(chave => {
-    const lista = document.getElementById('lista-' + chave);
-    const qtd = lista ? lista.querySelectorAll('.aluno-item').length : 0;
-    const badge = document.getElementById('badge-' + chave);
-    if (badge) badge.textContent = qtd + ' aluno(s)';
-    totalGlobal += qtd;
-  });
-  const el = document.getElementById('total-global');
-  if (el) el.textContent = totalGlobal;
-}
-
-// ----- Dropdown mover -----
-function toggleMover(btn) {
-  fecharTodosMenus();
-  const menu = btn.nextElementSibling;
-  menu.classList.toggle('aberto');
-}
-function fecharTodosMenus() {
-  document.querySelectorAll('.mover-menu.aberto').forEach(m => m.classList.remove('aberto'));
-}
-document.addEventListener('click', e => {
-  if (!e.target.closest('.mover-wrapper')) fecharTodosMenus();
-});
-
-// ----- Modal -----
-function abrirModal() { document.getElementById('modal-bg').classList.add('aberto'); }
-function fecharModal() { document.getElementById('modal-bg').classList.remove('aberto'); }
-document.getElementById('modal-bg').addEventListener('click', e => {
-  if (e.target === document.getElementById('modal-bg')) fecharModal();
-});
-
-// ----- Toast -----
-function toast(msg) {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.add('visivel');
-  setTimeout(() => el.classList.remove('visivel'), 2800);
-}
-
-function mostrarLoading() {
-  const loading = document.getElementById('loading-bg');
-  const btn = document.getElementById('btn-confirmar-sync');
-
-  if (loading) loading.classList.add('ativo');
-
-  if (btn) {
-    btn.disabled = true;
-    btn.innerText = 'Sincronizando...';
-  }
-}
-</script>
-</body>
+        {% endif %}
+        <div class="topo">
+            <div>
+                <h1>Revisão dos grupos</h1>
+                <p>Confira, mova ou remova alunos antes de gerar a simulação dos grupos.</p>
+            </div>
+            <button class="btn-sync" onclick="abrirModal()">Sincronizar grupos</button>
+        </div>
+        <div class="resumo">
+            <strong id="total-global">{{ total }}</strong> aluno(s) classificado(s) no total
+        </div>
+        <!-- Cards dos 4 grupos -->
+        <div class="grade">
+            {% for chave, label, badge_class in grupos_meta %}
+            <div class="card" id="card-{{ chave }}">
+                <div class="card-header">
+                    <div class="card-titulo">{{ label }}</div>
+                    <span class="card-badge {{ badge_class }}" id="badge-{{ chave }}">
+                    {{ contagens|get_item:chave }} aluno(s)
+                    </span>
+                </div>
+                <div class="card-lista" id="lista-{{ chave }}">
+                    {% for aluno in grupos|get_item:chave %}
+                    <div class="aluno-item" data-email="{{ aluno.email }}" data-grupo="{{ chave }}">
+                        <div class="aluno-info">
+                            <div class="aluno-nome">{{ aluno.nome }}</div>
+                            <div class="aluno-email">{{ aluno.email }}</div>
+                        </div>
+                        <div class="aluno-acoes">
+                            <div class="mover-wrapper">
+                                <button class="btn-acao" onclick="toggleMover(this)">Mover ▾</button>
+                                <div class="mover-menu">
+                                    {% for dest_chave, dest_label, _ in grupos_meta %}
+                                    {% if dest_chave != chave %}
+                                    <button onclick="moverAluno('{{ aluno.email }}', '{{ chave }}', '{{ dest_chave }}', this)">
+                                    → {{ dest_label }}
+                                    </button>
+                                    {% endif %}
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <button class="btn-acao btn-remover" onclick="removerAluno('{{ aluno.email }}', '{{ chave }}', this)">Remover</button>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="vazio">Nenhum aluno neste grupo</div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <!-- Modal de confirmação -->
+        <div class="modal-bg" id="modal-bg">
+            <div class="modal">
+                <h2>Confirmar sincronização</h2>
+                <p>Sincronizar nos grupos do Google Workspace.</p>
+                <div class="modal-acoes">
+                    <button class="btn-cancelar" onclick="fecharModal()">Cancelar</button>
+                    <form method="post" action="{% url 'confirmar_sync' %}" style="display:inline" onsubmit="mostrarLoading()">
+                        {% csrf_token %}
+                        <button type="submit" class="btn-confirmar" id="btn-confirmar-sync">
+                        Confirmar e sincronizar
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <!-- Toast de feedback -->
+        <div id="toast"></div>
+        <div class="loading-bg" id="loading-bg">
+            <div class="spinner"></div>
+            <div class="loading-texto">Sincronizando grupos... isso pode levar alguns minutos.</div>
+        </div>
+        <script>
+            const CSRF = document.cookie.match(/csrftoken=([^;]+)/)?.[1] ?? '';
+            
+            // ----- Mover aluno -----
+            function moverAluno(email, de, para, btnEl) {
+              fetch("{% url 'mover_aluno' %}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+                body: JSON.stringify({ email, de, para })
+              })
+              .then(r => r.json())
+              .then(data => {
+                if (!data.ok) { toast('Erro: ' + data.erro); return; }
+            
+                // Move o DOM sem recarregar
+                const item = document.querySelector(`.aluno-item[data-email="${email}"][data-grupo="${de}"]`);
+                if (!item) return;
+            
+                // Atualiza atributo grupo
+                item.dataset.grupo = para;
+            
+                // Remove aviso "vazio" do destino se existir
+                const listaDestino = document.getElementById('lista-' + para);
+                const vazio = listaDestino.querySelector('.vazio');
+                if (vazio) vazio.remove();
+            
+                // Atualiza os botões de mover do item para refletir novo grupo
+                item.querySelectorAll('.mover-menu button').forEach(b => {
+                  const destChave = b.getAttribute('onclick').match(/'([^']+)',\s*this/)?.[1];
+                  if (destChave === para) {
+                    b.closest('.aluno-item').setAttribute('data-grupo', para);
+                  }
+                });
+            
+                listaDestino.appendChild(item);
+            
+                // Se lista de origem ficou vazia, adiciona aviso
+                const listaOrigem = document.getElementById('lista-' + de);
+                if (listaOrigem.querySelectorAll('.aluno-item').length === 0) {
+                  listaOrigem.innerHTML = '<div class="vazio">Nenhum aluno neste grupo</div>';
+                }
+            
+                atualizarBadges();
+                toast(`Aluno movido para ${para.replace('_', ' ')}.`);
+                fecharTodosMenus();
+              })
+              .catch(() => toast('Falha na requisição.'));
+            }
+            
+            // ----- Remover aluno -----
+            function removerAluno(email, grupo, btnEl) {
+              if (!confirm('Remover este aluno da lista?')) return;
+            
+              fetch("{% url 'remover_aluno' %}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+                body: JSON.stringify({ email, grupo })
+              })
+              .then(r => r.json())
+              .then(data => {
+                if (!data.ok) { toast('Erro: ' + data.erro); return; }
+            
+                const item = document.querySelector(`.aluno-item[data-email="${email}"][data-grupo="${grupo}"]`);
+                const lista = document.getElementById('lista-' + grupo);
+                item?.remove();
+            
+                if (lista && lista.querySelectorAll('.aluno-item').length === 0) {
+                  lista.innerHTML = '<div class="vazio">Nenhum aluno neste grupo</div>';
+                }
+            
+                atualizarBadges();
+                toast('Aluno removido.');
+              })
+              .catch(() => toast('Falha na requisição.'));
+            }
+            
+            // ----- Badges e total -----
+            function atualizarBadges() {
+              let totalGlobal = 0;
+              ['matriculados_cc','matriculados_si','egressos_cc','egressos_si'].forEach(chave => {
+                const lista = document.getElementById('lista-' + chave);
+                const qtd = lista ? lista.querySelectorAll('.aluno-item').length : 0;
+                const badge = document.getElementById('badge-' + chave);
+                if (badge) badge.textContent = qtd + ' aluno(s)';
+                totalGlobal += qtd;
+              });
+              const el = document.getElementById('total-global');
+              if (el) el.textContent = totalGlobal;
+            }
+            
+            // ----- Dropdown mover -----
+            function toggleMover(btn) {
+              fecharTodosMenus();
+              const menu = btn.nextElementSibling;
+              menu.classList.toggle('aberto');
+            }
+            function fecharTodosMenus() {
+              document.querySelectorAll('.mover-menu.aberto').forEach(m => m.classList.remove('aberto'));
+            }
+            document.addEventListener('click', e => {
+              if (!e.target.closest('.mover-wrapper')) fecharTodosMenus();
+            });
+            
+            // ----- Modal -----
+            function abrirModal() { document.getElementById('modal-bg').classList.add('aberto'); }
+            function fecharModal() { document.getElementById('modal-bg').classList.remove('aberto'); }
+            document.getElementById('modal-bg').addEventListener('click', e => {
+              if (e.target === document.getElementById('modal-bg')) fecharModal();
+            });
+            
+            // ----- Toast -----
+            function toast(msg) {
+              const el = document.getElementById('toast');
+              el.textContent = msg;
+              el.classList.add('visivel');
+              setTimeout(() => el.classList.remove('visivel'), 2800);
+            }
+            
+            function mostrarLoading() {
+              const loading = document.getElementById('loading-bg');
+              const btn = document.getElementById('btn-confirmar-sync');
+            
+              if (loading) loading.classList.add('ativo');
+            
+              if (btn) {
+                btn.disabled = true;
+                btn.innerText = 'Sincronizando...';
+              }
+            }
+        </script>
+    </body>
 </html>
